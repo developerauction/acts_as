@@ -6,7 +6,7 @@ class User < ActiveRecord::Base
 end
 
 class RebelProfile < ActiveRecord::Base
-  has_one :rebel
+  has_one :rebel, foreign_key: :id
 end
 
 class ImperialProfile < ActiveRecord::Base
@@ -26,7 +26,7 @@ class XWing < ActiveRecord::Base
 end
 
 class Rebel < User
-  acts_as :profile, class_name: 'RebelProfile'
+  acts_as :profile, class_name: 'RebelProfile', foreign_key: :id
   acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will )
 end
 
@@ -48,9 +48,12 @@ describe ActsAs do
   describe 'automatic association building' do
     describe 'when acted model has already been created' do
       it 'retrieves it from the database' do
-        rebel.profile.serial_data = '123'
+        expect {
+          Rebel.create name: "Ensign Orthap"
+        }.to change { RebelProfile.count }.by(1)
+        rebel.serial_data = '123'
         rebel.save
-        rebel.reload.profile.serial_data.should == '123'
+        rebel.reload.serial_data.should == '123'
       end
     end
 

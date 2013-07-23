@@ -92,6 +92,24 @@ Now a whole slew of methods related to ActiveRecord attributes are available for
 
     One major caveat, it only works for first-level attributes at the moment. (see pending spec)
 
+## Lifecycle Management
+
+If your actor/acted association is 1:1 (see rebel -> profile association in spec), just specify foreign_key: :id and
+acts_as will automatically ensure the creation of the acted model with a primary key that matches the actor after_create.
+
+```ruby
+    acts_as :profile, class_name: 'RebelProfile', foreign_key: :id
+
+    # later in RebelProfile
+    has_one :rebel, foreign_key: :id
+```
+
+Now any Rebel.create! will automatically trigger a creation of a RebelProfile by the same ID. Because the primaries keys
+are matched between tables, joins against either of these tables should be easier.
+
+If your actor/acted association is X:1 (see rebel -> clan association in spec), feel free to add your own foreign key
+to the belongs_to table and manage the association lifecycle yourself.
+
 ## Contributing
 
 1. Fork it

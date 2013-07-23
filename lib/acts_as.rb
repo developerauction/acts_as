@@ -32,14 +32,22 @@ module ActsAs
 
   module ClassMethods
     def acts_as(association, with: [], prefix: [], **options)
+      association_class = (options[:class_name] || association).to_s.camelcase.constantize
       belongs_to(association, **options.merge(autosave: true))
       define_method(association) do |*args|
-        acted = super(*args) || send("build_#{association}", *args)
+        unless (acted = instance_variable_get "@acted_#{association}")
+          acted = instance_variable_set "@acted_#{association}",
+                        ( super(*args) ||
+                          (options[:foreign_key] == :id ? association_class.where(id: id).first_or_initialize : nil) ||
+                          send("build_#{association}", *args)
+                        )
+        end
         acted.save if persisted? && acted.new_record?
         acted
       end
+      after_create -> { send(association) }
 
-      if (association_class = (options[:class_name] || association).to_s.camelcase.constantize).table_exists?
+      if association_class.table_exists?
         whitelist_and_delegate_fields(association_class, association, prefix, with)
         override_method_missing
       end
