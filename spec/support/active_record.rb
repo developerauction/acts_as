@@ -22,6 +22,12 @@ ActiveRecord::Migration.create_table :imperial_profiles do |t|
   t.timestamps
 end
 
+ActiveRecord::Migration.create_table :ewok_profiles do |t|
+  t.string :analog_data
+  t.string :cuteness
+  t.timestamps
+end
+
 ActiveRecord::Migration.create_table :clans do |t|
   t.string :name
   t.integer :strength, default: 50

@@ -21,6 +21,11 @@ class Clan < ActiveRecord::Base
   end
 end
 
+class EwokProfile < ActiveRecord::Base
+  has_one :ewok
+  validates_presence_of :cuteness
+end
+
 class XWing < ActiveRecord::Base
   belongs_to :rebel
 end
@@ -32,6 +37,10 @@ end
 
 class Imperial < User
   acts_as :profile, class_name: 'ImperialProfile'
+end
+
+class Ewok < User
+  acts_as :profile, class_name: 'EwokProfile'
 end
 
 describe ActsAs do
@@ -149,6 +158,18 @@ describe ActsAs do
       pending 'support nested attributes'
       xwing = XWing.create!(rebel: rebel)
       XWing.joins(rebel: :clan).where(rebel: {strength: rebel.strength}).should include(xwing)
+    end
+  end
+
+  describe 'validations' do
+    let(:ewok) { Ewok.create(name: "Leia", clan_name: "Organa") }
+
+    before do
+      ewok.valid?
+    end
+
+    it 'should add validations to errors' do
+      ewok.errors[:'profile.cuteness'].should be_present
     end
   end
 end
