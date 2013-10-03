@@ -7,10 +7,10 @@ Gem::Specification.new do |spec|
   spec.name          = "acts_as"
   spec.version       = ActsAs::VERSION
   spec.authors       = ["winfred"]
-  spec.email         = ["winfred@developerauction.com"]
+  spec.email         = ["winfred@hired.com"]
   spec.description   = %q{ActiveRecord extension for easy STI Delegation}
   spec.summary       = %q{ delegate an entire 1:1 association worth of active record field-related helpers }
-  spec.homepage      = "http://github.com/wnadeau/acts_as"
+  spec.homepage      = "http://github.com/hired/acts_as"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)

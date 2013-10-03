@@ -172,4 +172,10 @@ describe ActsAs do
       ewok.errors[:'profile.cuteness'].should be_present
     end
   end
+
+  describe 'as_json' do
+    it 'includes acted fields' do
+      expect(rebel.as_json(root: false)['clan_name']).to eql("Organa")
+    end
+  end
 end

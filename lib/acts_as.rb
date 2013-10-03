@@ -8,6 +8,10 @@ module ActsAs
   def self.included(base)
     raise ActiveRecordOnly unless base < ActiveRecord::Base
     base.extend ClassMethods
+    base.class_eval do
+      alias_method :as_json_without_acted_fields, :as_json
+      alias_method :as_json, :as_json_with_acted_fields
+    end
   end
 
   def previous_changes
@@ -28,6 +32,12 @@ module ActsAs
   def acts_as_field_match?(method)
     @association_match = self.class.acts_as_fields_match(method)
     @association_match && send(@association_match).respond_to?(method)
+  end
+
+  def as_json_with_acted_fields(options = {})
+    options[:methods] ||= []
+    options[:methods] |= self.class.acts_as_fields.values.flatten
+    as_json_without_acted_fields(options)
   end
 
   module ClassMethods
@@ -116,7 +126,7 @@ module ActsAs
 
       delegate(*(association_fields + association_fields.map { |field| "#{field}=" }), to: one_association)
 
-      acts_as_fields[one_association] = association_fields + prefix
+      acts_as_fields[one_association] = association_fields + prefix.map{|field| "#{one_association}_#{field}" }
     end
 
     def build_prefix_methods(one_association, prefix)
