@@ -107,11 +107,13 @@ module ActsAs
     end
 
     def delegations(association_class, delegated_names)
-      delegated_bools      = boolean_columns(association_class)  & delegated_names
-      delegated_columns    = association_class.column_names      & delegated_names
-      delegated_methods    = delegated_names - delegated_bools - delegated_columns
-      delegated_bools      = delegated_bools    + delegated_bools.map     { |field| "#{field}?" }
-      delegated_columns    = delegated_columns  + delegated_columns.map   { |field| "#{field}=" } + delegated_columns.map  { |field| "#{field}_was" }
+      delegated_reflections = association_class.reflections.keys  & delegated_names
+      delegated_bools       = boolean_columns(association_class)  & delegated_names
+      delegated_columns     = association_class.column_names      & delegated_names
+      delegated_methods     = delegated_names - delegated_bools - delegated_columns - delegated_reflections
+      delegated_bools       = delegated_bools    + delegated_bools.map     { |field| "#{field}?" }
+      delegated_columns     = delegated_columns  + delegated_reflections
+      delegated_columns     = delegated_columns  + delegated_columns.map   { |field| "#{field}=" } + delegated_columns.map  { |field| "#{field}_was" }
 
       delegated_bools + delegated_methods + delegated_columns
     end
