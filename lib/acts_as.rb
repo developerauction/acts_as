@@ -18,7 +18,12 @@ module ActsAs
   end
 
   def update_column(name, value)
-    if (association = self.class.acts_as_fields.detect { |k,v| v.include?(name.to_s) }.try(:first)).present?
+    association = self.class.acts_as_fields.detect { |k,v| v.values.flatten.include?(name.to_s) }.try(:first)
+
+    if association.present?
+      if self.class.acts_as_fields[association][:prefix].include?(name.to_s)
+        name.gsub!(/#{Regexp.quote(association)}_/, '')
+      end
       send(association).update_column name, value
     else
       super
@@ -33,6 +38,7 @@ module ActsAs
   module ClassMethods
     def acts_as(association, with: [], prefix: [], **options)
       belongs_to(association, **options.merge(autosave: true))
+
       define_method(association) do |*args|
         acted = super(*args) || send("build_#{association}", *args)
         acted.save if persisted? && acted.new_record?
@@ -41,7 +47,6 @@ module ActsAs
 
       if (association_class = (options[:class_name] || association).to_s.camelcase.constantize).table_exists?
         whitelist_and_delegate_fields(association_class, association, prefix, with)
-        override_method_missing
       end
     end
 
@@ -50,8 +55,8 @@ module ActsAs
     end
 
     def acts_as_fields_match(method)
-      acts_as_fields.select do |association, fields|
-        fields.select { |f| method.to_s.include?(f) }.any?
+      acts_as_fields.select do |association, types|
+        types.values.flatten.select { |f| method.to_s.include?(f) }.any?
       end.keys.first
     end
 
@@ -84,40 +89,31 @@ module ActsAs
 
     private
 
-    def override_method_missing
-      define_method :method_missing do |method, *args, &block|
-        if acts_as_field_match?(method)
-          send(@association_match).send(method, *args, &block)
-        else
-          super(method, *args, &block)
-        end
-      end
-
-      define_method :respond_to? do |method, *args, &block|
-        acts_as_field_match?(method) || super(method, *args, &block)
-      end
-    end
-
     def whitelist_and_delegate_fields(association_class, one_association, prefix, with)
-      association_fields = association_class.columns.map(&:name) - PREFIX - prefix + with
+      prefix    = delegations(association_class, prefix)
+      no_prefix = delegations(association_class, with)
 
-      build_prefix_methods(one_association, prefix)
+      delegate(*(prefix),     to: one_association, prefix: true)
+      delegate(*(no_prefix),  to: one_association)
 
-      delegate(*(association_fields + association_fields.map { |field| "#{field}=" }), to: one_association)
-
-      acts_as_fields[one_association] = association_fields + prefix
+      acts_as_fields[one_association] = {
+        no_prefix:  no_prefix,
+        prefix:     prefix.map { |field| "#{one_association}_#{field}" }
+      }
     end
 
-    def build_prefix_methods(one_association, prefix)
-      prefix.each do |field|
-        define_method("#{one_association}_#{field}") do |*args|
-          send(one_association).send(field, *args)
-        end
+    def boolean_columns(association_class)
+      association_class.columns.select{ |column| column.sql_type == 'boolean' }.map(&:name)
+    end
 
-        define_method("#{one_association}_#{field}=") do |*args|
-          send(one_association).send("#{field}=", *args)
-        end
-      end
+    def delegations(association_class, delegated_names)
+      delegated_bools      = boolean_columns(association_class)  & delegated_names
+      delegated_columns    = association_class.column_names      & delegated_names
+      delegated_methods    = delegated_names - delegated_bools - delegated_columns
+      delegated_bools      = delegated_bools    + delegated_bools.map     { |field| "#{field}?" }
+      delegated_columns    = delegated_columns  + delegated_columns.map   { |field| "#{field}=" } + delegated_columns.map  { |field| "#{field}_was" }
+
+      delegated_bools + delegated_methods + delegated_columns
     end
   end
 end

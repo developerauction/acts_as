@@ -27,16 +27,16 @@ end
 
 class Rebel < User
   acts_as :profile, class_name: 'RebelProfile'
-  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will )
+  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will strength cool )
 end
 
 class RebelWithStrongParams < User
   include ActiveModel::ForbiddenAttributesProtection
-  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will )
+  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will cool )
 end
 
 class Imperial < User
-  acts_as :profile, class_name: 'ImperialProfile'
+  acts_as :profile, class_name: 'ImperialProfile', with: %w( analog_data )
 end
 
 describe ActsAs do
@@ -115,7 +115,7 @@ describe ActsAs do
   end
 
   describe 'boolean helpers' do
-    it { should respond_to(:cool?)}
+    it      { should respond_to(:cool?) }
     specify { rebel.should_not be_cool }
   end
 
