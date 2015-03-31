@@ -14,6 +14,7 @@ end
 
 ActiveRecord::Migration.create_table :rebel_profiles do |t|
   t.string :serial_data
+  t.string :validated_attr
   t.timestamps null: false
 end
 

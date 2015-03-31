@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'support/active_record'
+require 'pry'
 
 class User < ActiveRecord::Base
   include ActsAs
@@ -7,6 +8,7 @@ end
 
 class RebelProfile < ActiveRecord::Base
   has_one :rebel, foreign_key: :profile_id
+  validates :validated_attr, on: :update, length: { minimum: 1 }, if: :validated_attr_changed?
 end
 
 class ImperialProfile < ActiveRecord::Base
@@ -26,22 +28,22 @@ class XWing < ActiveRecord::Base
 end
 
 class Rebel < User
-  acts_as :profile, class_name: 'RebelProfile'
-  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will )
+  acts_as :profile, class_name: 'RebelProfile', with: %w( validated_attr serial_data )
+  acts_as :clan,    prefix: %w( name ),         with: %w( delegate_at_will strength cool )
 end
 
 class RebelWithStrongParams < User
   include ActiveModel::ForbiddenAttributesProtection
-  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will )
+  acts_as :clan, prefix: %w( name ), with: %w( delegate_at_will cool )
 end
 
 class Imperial < User
-  acts_as :profile, class_name: 'ImperialProfile'
+  acts_as :profile, class_name: 'ImperialProfile', with: %w( analog_data )
 end
 
 describe ActsAs do
 
-  subject(:rebel) { Rebel.create(name: "Leia", clan_name: "Organa") }
+  subject(:rebel) { Rebel.create(name: "Leia", clan_name: "Organa", validated_attr: 'valid') }
 
   it 'raises exception for non-ActiveRecord::Base extensions' do
     expect {
@@ -115,7 +117,7 @@ describe ActsAs do
   end
 
   describe 'boolean helpers' do
-    it { should respond_to(:cool?)}
+    it      { should respond_to(:cool?) }
     specify { rebel.should_not be_cool }
   end
 
@@ -132,6 +134,17 @@ describe ActsAs do
     it 'should pass through to acted models' do
       rebel.update_column :strength, 23
       rebel.strength.should == 23
+    end
+  end
+
+  describe 'validations' do
+    it 'should not validate the association when association is unchanged' do
+      rebel.validated_attr = nil
+      rebel.save(validate: false)
+
+      rebel.update(name: 'New names').should be_true
+      rebel.update(name: 'New name', validated_attr: '').should be_false
+      rebel.update(name: 'New name', validated_attr: 'valid').should be_true
     end
   end
 
